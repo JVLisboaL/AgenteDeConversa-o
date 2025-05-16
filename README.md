@@ -4,6 +4,8 @@ Um guia completo para configurar e executar um chatbot em Python com diferentes 
 
 ## Visão Geral
 
+Uso recomendado no Google Colab
+
 Este chatbot foi projetado para interagir com os usuários, assumindo uma de quatro personas distintas:
 
 - *Amigo*: Um companheiro amigável e casual, pronto para uma conversa descontraída.
