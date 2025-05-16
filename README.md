@@ -1,105 +1,99 @@
-README - Chatbot com Personalidades
+Chatbot com Personalidades
 Um guia completo para configurar e executar um chatbot em Python com diferentes personalidades usando a API do Google Gemini.
 
+Visão Geral
+Este chatbot é projetado para interagir com os usuários, assumindo uma de quatro personas distintas:
+
+Amigo: Um companheiro amigável e casual, pronto para uma conversa descontraída.
+
+Parceiro Romântico: Um parceiro amoroso e atencioso, ideal para quem busca afeto e romance.
+
+Psicólogo: Um ouvinte empático e compreensivo, que oferece suporte e compreensão.
+
+Neutro: Um assistente objetivo e direto, focado em fornecer informações precisas e factuais.
+
+O chatbot mantém um histórico da conversa para fornecer respostas mais contextuais e relevantes. A escolha da persona é feita automaticamente com base nas mensagens do usuário, mas também pode ser controlada por comandos explícitos.
+
+Funcionalidades
+Interação em linguagem natural com o usuário
+
+Seleção automática de persona com base no contexto da conversa
+
+Comandos explícitos para mudar a persona do chatbot
+
+Histórico da conversa para respostas contextuais
+
+Fácil configuração e execução
+
+Como usar
 Executando no Google Colab
+Se você estiver usando o Google Colab, siga estas etapas para executar o chatbot:
 
-Siga estas etapas para executar o chatbot no Google Colab:
+Abra o Colab: Abra um novo notebook no Google Colab.
 
-#####################################################################################
+Copie o código: Copie todo o código Python deste README e cole em uma célula de código no Colab.
 
-1. Abra o Colab: Abra um novo notebook no Google Colab.
+Instale as dependências: Execute a célula de código com o seguinte comando:
 
-2. Copie o código: Copie todo o código Python deste README e cole em uma célula de código no Colab.
-
-3. Instale as dependências: Execute a célula de código com o seguinte comando:
+```
 
 !pip install requests
 
-4. Configure a chave da API: Execute a célula de código para configurar a chave da API do Google Gemini:
+```
+
+Configure a chave da API: Execute a célula de código para configurar a chave da API do Google Gemini:
+
+```
 
 from google.colab import userdata
+
 userdata.define('GOOGLE_API_KEY')
+
+```
 
 Quando o Colab solicitar, copie e cole sua chave da API do Google Gemini e clique em "Save".
 
-5. Execute o chatbot: Execute a célula de código com o código do chatbot.
-
-Observações sobre o Colab:
-
-Não é necessário instalar o Python ou configurar variáveis de ambiente manualmente.
-
-Certifique-se de ter uma conexão de internet estável.
-
-#####################################################################################
-
-Visão Geral
-O chatbot interage com os usuários, assumindo diferentes personas:
-
-Amigo: Conversas amigáveis e casuais.
-
-Parceiro Romântico: Interações amorosas e atenciosas.
-
-Psicólogo: Suporte e compreensão empáticos.
-
-Neutro: Assistente objetivo e direto.
-
-O chatbot mantém o histórico da conversa para respostas contextuais e escolhe a persona automaticamente, ou por comando.
-
-#####################################################################################
-
-Pré-requisitos
-Python 3.6+: Baixe em python.org.
-
-Chave da API do Google Gemini: Obtenha uma chave no Google AI Studio.
-
-Google Colab (Opcional): Para execução online sem instalação.
-
-#####################################################################################
+Execute o chatbot: Execute a célula de código com o código do chatbot.
 
 Configuração
-1. Obtenha o código: Baixe como ZIP ou clone com Git.
+Se você estiver executando o chatbot localmente, siga estas etapas:
 
-2. Instale as dependências:
+Instale o Python: Certifique-se de ter o Python 3.6 ou superior instalado em seu sistema. Você pode baixá-lo em python.org.
 
-Abra o terminal/prompt de comando.
+Instale as dependências: Abra um terminal ou prompt de comando e execute o seguinte comando:
 
-Navegue até a pasta do código (ex: cd Desktop/chatbot).
-
-Execute:
+```bash
 
 pip install requests
 
-3. Configure a chave da API:
+```
 
-Google Colab: Execute:
+Configure a chave da API do Google Gemini:
 
-from google.colab import userdata
-userdata.define('GOOGLE_API_KEY')
+Obtenha uma chave de API do Google Gemini no Google AI Studio.
 
-Cole a chave quando solicitado.
+Defina a chave da API como uma variável de ambiente chamada GOOGLE_API_KEY. Por exemplo, no Linux/macOS, você pode adicionar a seguinte linha ao seu arquivo ~/.bashrc ou ~/.zshrc:
 
-Variáveis de Ambiente:
-
-Linux/macOS: Em ~/.bashrc ou ~/.zshrc:
+```bash
 
 export GOOGLE_API_KEY="SUA_CHAVE_DA_API"
 
-E execute source ~/.bashrc ou source ~/.zshrc.
+```
 
-Windows: Em "Variáveis de Ambiente" do sistema, crie uma variável GOOGLE_API_KEY.
+Lembre-se de substituir "SUA_CHAVE_DA_API" pela sua chave de API real.
 
-4. Execute o chatbot:
+Execute o chatbot: Abra um terminal ou prompt de comando, navegue até o diretório onde você salvou o código do chatbot e execute o seguinte comando:
 
-No terminal/prompt de comando, na pasta do código, execute:
+```bash
 
 python chatbot.py
 
-#####################################################################################
+```
 
-Como usar o chatbot
-Interaja digitando mensagens e pressionando Enter. O chatbot responde com a persona apropriada.
+Interagindo com o Chatbot
+Depois de executar o chatbot, você pode interagir com ele digitando suas mensagens e pressionando Enter. O chatbot responderá de acordo com a persona atual.
 
-Comandos de persona:
+Você também pode usar comandos explícitos para mudar a persona do chatbot:
 
 aja como um amigo
 
@@ -107,46 +101,16 @@ aja como um parceiro ou aja como um parceiro romântico
 
 aja como um psicólogo ou aja como um psicologo
 
-Digite sair e pressione Enter para encerrar.
+aja como neutro
 
-#####################################################################################
+Para encerrar a conversa, digite sair e pressione Enter.
 
-Personas do Chatbot
-Amigo: Linguagem casual, perguntas sobre o dia, apoio.
+Solução de Problemas
+Erro de API Key: Se você estiver recebendo um erro relacionado à chave da API, verifique se você configurou a variável de ambiente GOOGLE_API_KEY corretamente.
 
-Parceiro Romântico: Expressa amor, carinho e preocupação.
+Erro de instalação: Se você estiver tendo problemas para instalar as dependências, verifique se você tem o Python e o pip instalados corretamente.
 
-Psicólogo: Linguagem formal, perguntas para entender sentimentos, apoio.
-
-Neutro: Linguagem objetiva e direta, informações concisas.
-
-#####################################################################################
-
-Dicas e Truques
-Use comandos de persona para mudar o estilo de conversação.
-
-Observe como o histórico da conversa afeta as respostas.
-
-Modifique o código para adicionar novas personas ou recursos.
-
-#####################################################################################
-
-Solução de problemas
-Chave da API: Verifique a configuração correta da chave da API.
-
-Dependências: Instale-as com pip install requests.
-
-Internet: Verifique a conexão.
-
-Erros: Consulte as mensagens no terminal/prompt de comando.
-
-Reinicie: Reinicie o terminal/prompt após configurar variáveis de ambiente.
-
-Código: Revise o código em busca de erros.
-
-Procure ajuda online em fóruns e na documentação da API do Google Gemini se necessário.
-
-#####################################################################################
+Chatbot não responde: Se o chatbot não estiver respondendo, verifique sua conexão com a internet e tente reiniciar o chatbot.
 
 Contribuição
-Contribuições são bem-vindas via pull requests.
+Contribuições para este projeto são bem-vindas! Sinta-se à vontade para enviar pull requests com melhorias, correções de bugs ou novos recursos.
