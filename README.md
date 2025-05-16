@@ -31,9 +31,9 @@ Se você estiver usando o Google Colab, siga estas etapas para executar o chatbo
 2. *Copie o código*: Copie todo o código Python deste README e cole em uma célula de código no Colab.
 3. *Instale as dependências*: Execute a célula de código com o seguinte comando:
 
-
+'''
 !pip install requests
-
+'''
 
 *Configure a chave da API*: Execute a célula de código para configurar a chave da API do Google Gemini:
 
