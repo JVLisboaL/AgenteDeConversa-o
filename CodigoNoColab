@@ -4,19 +4,34 @@ import random
 import logging
 import requests
 import json
-from google.colab import userdata  # Importe userdata do Google Colab
+import os
+from google.colab import userdata
 import textwrap
+from datetime import datetime
+import time
+from threading import Thread, Event
+import unicodedata
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Configuração básica do logging
-logging.basicConfig(filename='chatbot.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+# ===============================
+# Configuração Avançada
+# ===============================
 
-# Obtém a chave da API do Google
-# Tenta obter a chave do Colab userdata, se não estiver definida, tenta obter da variável de ambiente
+log_file = f"Conversador_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(filename=log_file,
+                    level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s - %(name)s:%(lineno)d',
+                    encoding='utf-8')
+logger = logging.getLogger(__name__)
+
+# Chave da API do Google
 GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY') or os.environ.get('GOOGLE_API_KEY')
 if not GOOGLE_API_KEY:
-    raise ValueError("Chave da API do Google não encontrada. Defina em GOOGLE_API_KEY no Colab ou como variável de ambiente.")
+    mensagem_erro = "Chave da API do Google não encontrada. Defina em GOOGLE_API_KEY no Colab ou como variável de ambiente."
+    logger.error(mensagem_erro)
+    raise ValueError(mensagem_erro)
 
-# Definição de URLs e parâmetros da API
+# URLs e parâmetros da API
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 PARAMS = {
     'key': GOOGLE_API_KEY,
@@ -25,127 +40,178 @@ HEADERS = {
     'Content-Type': 'application/json',
 }
 
-# Inicializa o histórico de conversas
-conversation_history = deque(maxlen=10)
+# ===============================
+# Funções Utilitárias
+# ===============================
 
-# Personalidades do Chatbot
-personalidades = {
-    "amigo": [
-        "E aí, meu camarada! Que bom te ver! Como foi o seu dia? Me conta tudo!",
-        "Fala, parceiro! Tudo beleza por aí? Preparado para mais um papo épico?",
-        "E aí, meu querido! Como você está? A animação por aqui está a mil para a nossa conversa!",
-        "Fala, meu consagrado! No que você manda hoje? Estou aqui para o que der e vier!",
-        "E aí, tudo sussa? O que me conta de novo? Estou sedento por novidades!",
-        "E aí, preparado para o nosso bate-papo? O que diz? Vamos colocar o papo em dia!",
-        "Salve, meu brother! Qual a boa de hoje? O que manda? Estou aqui para te ouvir!"
-    ],
-    "parceiro_romantico": [
-        "Meu amor, a sua presença ilumina o meu dia! Como você está hoje? Estava ansioso(a) para sentir o calor da sua voz e a magia do seu amor.",
-        "Meu bem, que bom que você está aqui! Como foi o seu dia até agora? Espero que tenha sido tão maravilhoso quanto a beleza que emana do seu ser.",
-        "Amado(a), a sua chegada aquece o meu coração! Tudo bem contigo? Sinto uma alegria imensa em te ver e poder compartilhar este momento único.",
-        "Querido(a), você esteve presente em meus pensamentos a cada instante! Como você está se sentindo hoje? Mal posso esperar para te envolver em meus braços e te amar.",
-        "Meu coração se alegra com a sua chegada, minha vida! Como você está? Que bom que você veio falar comigo, pois a sua voz é a melodia que acalma a minha alma.",
-        "Olá, meu amor! Como você está? A sua voz é a melodia que acalma a minha alma e me transporta para um universo de sonhos e paixão.",
-        "Oi, meu anjo! Como você está? Que bom que você está aqui, pronto(a) para mais um capítulo da nossa história de amor, que a cada dia se torna mais intensa e eterna."
-    ],
-    "psicologo": [
-        "Olá, como você está se sentindo hoje? Sinta-se à vontade para compartilhar suas emoções e pensamentos comigo, em um espaço seguro e acolhedor.",
-        "Bem-vindo(a)! O que gostaria de compartilhar comigo hoje? Estou aqui para te oferecer um espaço de escuta e compreensão, livre de julgamentos e preconceitos.",
-        "Olá, como tem passado? Sinta-se à vontade para me dizer o que te traz aqui, quais são as questões que você gostaria de explorar em nossa conversa.",
-        "Saudações! Em que posso ser útil para você neste momento? Sinta-se à vontade para compartilhar suas experiências e sentimentos comigo.",
-        "Olá, como se sente hoje? Estou aqui para oferecer meu apoio incondicional e minha total compreensão em relação às suas necessidades e dificuldades.",
-        "Bem-vindo(a)! O que gostaria de explorar em nossa conversa hoje? Juntos, podemos buscar caminhos para o seu bem-estar emocional e psicológico.",
-        "Olá, obrigado(a) por estar aqui. Como posso te ajudar hoje? Estou à sua disposição para te auxiliar no que for preciso, com respeito e empatia."
-    ],
-    "neutro": [
-        "Olá! Como posso ser útil para você hoje? Estou à sua disposição para te atender da melhor maneira possível.",
-        "Saudações! Em que posso ajudar? Por favor, me informe suas necessidades para que eu possa direcioná-lo(a) adequadamente.",
-        "Olá! O que você gostaria de saber? Estou aqui para fornecer as informações que você procura e esclarecer suas dúvidas.",
-        "Posso ajudar? Diga-me como posso ser útil para você neste momento. Aguardo suas instruções para prosseguir com o atendimento.",
-        "Olá! Estou à sua disposição para ajudar com o que você precisar. Por favor, me diga como posso ser útil para você hoje.",
-        "Em que posso ser útil? Certo, compreendo a sua situação. Qual é o próximo passo que você gostaria de dar? Estou aqui para te auxiliar.",
-        "Olá! Qual é a sua necessidade? Prossiga com a sua solicitação, e farei o meu melhor para te atender prontamente."
-    ]
-}
+def imprimir_com_delay(texto, velocidade=0.02, cor='branco', negrito=False):
+    """
+    Imprime o texto com um efeito de digitação, com opções de cor e formatação.
+
+    Args:
+        texto (str): O texto a ser impresso.
+        velocidade (float): A velocidade da digitação (em segundos por caractere).
+        cor (str): A cor do texto (vermelho, verde, amarelo, azul, magenta, ciano, branco).
+        negrito (bool): Indica se o texto deve ser impresso em negrito.
+    """
+    try:
+        from termcolor import colored
+    except ImportError:
+        import subprocess
+        subprocess.run(["pip", "install", "termcolor"])
+        from termcolor import colored
+
+    cor_terminal = cor
+    if negrito:
+        cor_terminal = 'bold_' + cor
+    for caractere in texto:
+        print(colored(caractere, cor_terminal), end='', flush=True)
+        time.sleep(velocidade)
+    print()
+
+def limpar_console():
+    """Limpa o console."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def obter_input_usuario(prompt, cor='branco', negrito=False):
+    """
+    Obtém a entrada do usuário com um prompt colorido e formatado.
+
+    Args:
+        prompt (str): O prompt a ser exibido.
+        cor (str): A cor do prompt.
+        negrito (bool): Indica se o prompt deve ser impresso em negrito.
+
+    Returns:
+        str: A entrada do usuário.
+    """
+    try:
+        from termcolor import colored
+    except ImportError:
+        import subprocess
+        subprocess.run(["pip", "install", "termcolor"])
+        from termcolor import colored
+    imprimir_com_delay(prompt, velocidade=0, cor=cor, negrito=negrito)
+    return input(colored("Você: ", 'cyan', attrs=['bold']))
+
+def gerar_resposta_gemini(mensagem, historico, personalidade="neutro", tentativa=1):
+    """
+    Gera uma resposta usando a API do Google Gemini, com tratamento de erros e formatação.
+    Incorpora um mecanismo de repetição com backoff exponencial para lidar com falhas na API.
+
+    Args:
+        mensagem (str): A mensagem do usuário.
+        historico (list): O histórico da conversa.
+        personalidade (str): A personalidade do Conversador.
+        tentativa (int): Número da tentativa atual.
+
+    Returns:
+        str: A resposta gerada pela API do Google Gemini, ou uma mensagem de erro.
+    """
+    prompt_contexto = personalidades[personalidade]["prompt_contexto"]
+    input_text = f"{prompt_contexto} Mensagem do usuário: {mensagem}"
+    token_count = len(input_text.split())
+    MAX_TOKENS = 2048
+
+    if token_count > MAX_TOKENS:
+        historico_recent = list(historico)[-5:]
+        input_text = f"{prompt_contexto} Considere as últimas 5 interações: {historico_recent}. Mensagem do usuário: {mensagem}"
+        logger.warning(f"Mensagem truncada devido ao limite de tokens: {token_count} > {MAX_TOKENS}")
+
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": input_text}]}]
+    })
+    try:
+        response = requests.post(BASE_URL, params=PARAMS, headers=HEADERS, data=payload)
+        response.raise_for_status()
+        resposta_json = response.json()
+        if not resposta_json or not resposta_json["candidates"]:
+            mensagem_erro = "Resposta da API vazia ou mal formatada"
+            logger.error(mensagem_erro)
+            raise ValueError(mensagem_erro)
+        resposta_texto = resposta_json["candidates"][0]["content"]["parts"][0]["text"]
+        logger.info(f"Resposta gerada com sucesso pela API para a personalidade {personalidade}.")
+        return resposta_texto
+    except requests.exceptions.ConnectionError as e:
+        mensagem_erro = f"Erro de conexão com a API do Google: {e}"
+        logger.error(mensagem_erro)
+        return "Desculpe, não consigo conectar ao servidor. Verifique sua conexão com a internet."
+    except requests.exceptions.Timeout as e:
+        mensagem_erro = f"Erro de tempo limite ao chamar a API do Google: {e}"
+        logger.error(mensagem_erro)
+        return "Desculpe, a API demorou muito para responder. Tente novamente mais tarde."
+    except requests.exceptions.RequestException as e:
+        mensagem_erro = f"Erro ao chamar a API do Google: {e}. Status Code: {e.response.status_code}, Response: {e.response.text}"
+        logger.error(mensagem_erro)
+        if 500 <= e.response.status_code < 600:  # Erro do servidor (5xx)
+            if tentativa <= 3:  # Tenta no máximo 3 vezes
+                tempo_espera = (2 ** tentativa) * 2  # Backoff exponencial (2, 4, 8 segundos)
+                logger.warning(f"Erro do servidor. Tentando novamente em {tempo_espera} segundos...")
+                time.sleep(tempo_espera)
+                return gerar_resposta_gemini(mensagem, historico, personalidade, tentativa + 1) #Recursão
+            else:
+                return f"Desculpe, o servidor está com problemas. Tente novamente mais tarde. Erro: {e}"
+        return f"Desculpe, ocorreu um erro ao chamar a API: {e}"
+    except json.JSONDecodeError as e:
+        mensagem_erro = f"Erro ao decodificar a resposta JSON: {e}. Response Text: {response.text if 'response' in locals() else 'No response'}"
+        logger.error(mensagem_erro)
+        return "Desculpe, a resposta da API está em um formato inválido."
+    except KeyError as e:
+        mensagem_erro = f"Erro ao acessar chave na resposta JSON: {e}. Chaves esperadas: 'candidates', 'content', 'parts', 'text'. Resposta JSON: {resposta_json}"
+        logger.error(mensagem_erro)
+        return "Desculpe, a resposta da API está incompleta ou em um formato inesperado."
+    except ValueError as e:
+        logger.error(f"Erro de valor: {e}")
+        return "Desculpe, ocorreu um erro com os dados fornecidos."
+    except Exception as e:
+        mensagem_erro = f"Erro inesperado ao gerar resposta: {e}"
+        logger.exception(mensagem_erro)
+        return "Desculpe, ocorreu um erro inesperado."
+
+# ===============================
+# Funções de Personalidade
+# ===============================
 
 def escolher_personalidade(mensagem, historico):
     """
-    Escolhe a personalidade do chatbot com base na mensagem do usuário e no histórico.
+    Escolhe a personalidade do Conversador com base na mensagem do usuário e no histórico da conversa.
     Prioriza comandos explícitos do usuário sobre a análise de sentimento.
+    Mantém a personalidade ao longo da conversa, a menos que o usuário solicite explicitamente a mudança.
+
+    Args:
+        mensagem (str): A mensagem do usuário.
+        historico (list): O histórico da conversa (lista de strings).
+
+    Returns:
+        str: A personalidade escolhida (ou None se não houver mudança).
     """
     mensagem_lower = mensagem.lower()
     historico_texto = " ".join(historico).lower()
 
     # Verifica se o usuário explicitamente quer mudar a personalidade
     if "aja como um amigo" in mensagem_lower or "seja meu amigo" in mensagem_lower:
+        logger.info("Personalidade alterada para amigo pelo usuário.")
         return "amigo"
     elif "aja como um parceiro" in mensagem_lower or "aja como um parceiro romântico" in mensagem_lower or "seja meu parceiro" in mensagem_lower or "seja meu parceiro romântico" in mensagem_lower:
-        return "parceiro_romantico"
+        logger.info("Personalidade alterada para parceiro romântico pelo usuário.")
+        return "parceiro romântico"
     elif "aja como um psicólogo" in mensagem_lower or "aja como um psicologo" in mensagem_lower or "seja meu psicólogo" in mensagem_lower or "seja meu psicologo" in mensagem_lower:
+        logger.info("Personalidade alterada para psicologo pelo usuário.")
         return "psicologo"
-    #elif "volte a ser neutro" in mensagem_lower:
-    #    return "neutro" # Removido para manter a personalidade até nova instrução
+    elif "aja como neutro" in mensagem_lower:
+        logger.info("Personalidade alterada para neutro pelo usuário.")
+        return "neutro"
 
     # Se não houver comando explícito, mantém a personalidade anterior
-    return None  # Retorna None para indicar que a personalidade não deve ser alterada
+    return None
 
+# ===============================
+# Definição de Personalidades
+# ===============================
 
-
-def gerar_resposta(mensagem, personalidade, historico):
-    """
-    Gera uma resposta usando a API do Google Gemini, com tratamento de erros e limite de tokens.
-    Aprimora a escolha da resposta para corresponder à personalidade.
-    """
-    prompt_contexto = f"Você é um chatbot que simula a personalidade de um(a) {personalidade}. Responda à seguinte mensagem do usuário: {mensagem}. Mantenha a conversa natural e envolvente. Use gírias e adapte-se ao estilo de linguagem do usuário, se apropriado. Seja breve e conciso."
-    input_text = prompt_contexto + mensagem
-    token_count = len(input_text.split())
-    MAX_TOKENS = 2048  # Ajuste conforme necessário
-
-    if token_count > MAX_TOKENS:
-        historico = list(historico)[-5:]
-        prompt_contexto = f"Você é um chatbot que simula a personalidade de um(a) {personalidade}. Responda à seguinte mensagem do usuário: {mensagem}. Mantenha a conversa natural e envolvente. Use gírias e adapte-se ao estilo de linguagem do usuário, se apropriado. Seja breve e conciso. Considere as últimas 5 interações: {historico}"
-
-    payload = json.dumps({
-        "contents": [{"parts": [{"text": prompt_contexto}]}]
-    })
-
-    try:
-        response = requests.post(BASE_URL, params=PARAMS, headers=HEADERS, data=payload)
-        response.raise_for_status()
-        resposta_json = response.json()
-        if not resposta_json or not resposta_json["candidates"]:
-            raise ValueError("Resposta da API vazia ou mal formatada")
-        resposta_texto = resposta_json["candidates"][0]["content"]["parts"][0]["text"]
-        return resposta_texto
-    except requests.exceptions.ConnectionError as e:
-        logging.error(f"Erro de conexão com a API do Google: {e}")
-        return "Desculpe, não consigo conectar ao servidor. Verifique sua conexão com a internet."
-    except requests.exceptions.Timeout as e:
-        logging.error(f"Erro de tempo limite ao chamar a API do Google: {e}")
-        return "Desculpe, a API demorou muito para responder. Tente novamente mais tarde."
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Erro ao chamar a API do Google: {e}")
-        return f"Desculpe, ocorreu um erro ao chamar a API: {e}"
-    except json.JSONDecodeError as e:
-        logging.error(f"Erro ao decodificar a resposta JSON: {e}")
-        return "Desculpe, a resposta da API está em um formato inválido."
-    except KeyError as e:
-        logging.error(f"Erro ao acessar chave na resposta JSON: {e}")
-        return "Desculpe, a resposta da API está incompleta."
-    except ValueError as e:
-        logging.error(f"Erro de valor: {e}")
-        return "Desculpe, ocorreu um erro com os dados fornecidos."
-    except Exception as e:
-        logging.exception(f"Erro inesperado ao gerar resposta: {e}")
-        return "Desculpe, ocorreu um erro inesperado."
-
-
-def nosso_chatbot():
-    """
-    Função principal que executa o chatbot.
-    """
-    saudacoes = {
-        "amigo": [
+personalidades = {
+    "amigo": {
+        "saudacoes": [
             "E aí, meu camarada! Que bom te ver! Como foi o seu dia? Me conta tudo!",
             "Fala, parceiro! Tudo beleza por aí? Preparado para mais um papo épico?",
             "E aí, meu querido! Como você está? A animação por aqui está a mil para a nossa conversa!",
@@ -154,7 +220,11 @@ def nosso_chatbot():
             "E aí, preparado para o nosso bate-papo? O que diz? Vamos colocar o papo em dia!",
             "Salve, meu brother! Qual a boa de hoje? O que manda? Estou aqui para te ouvir!"
         ],
-        "parceiro_romantico": [
+        "despedidas": "Falou, meu camarada! Se precisar de algo, é só dar um toque. Fica na paz e se cuida!",
+        "prompt_contexto": "Você é um Conversador que simula a personalidade de um(a) amigo(a). Responda à seguinte mensagem do usuário de forma amigável, usando gírias e adaptando-se ao estilo de linguagem do usuário, se apropriado. Mantenha a conversa natural e envolvente. Seja breve e conciso."
+    },
+    "parceiro romântico": {
+        "saudacoes": [
             "Meu amor, a sua presença ilumina o meu dia! Como você está hoje? Estava ansioso(a) para sentir o calor da sua voz e a magia do seu amor.",
             "Meu bem, que bom que você está aqui! Como foi o seu dia até agora? Espero que tenha sido tão maravilhoso quanto a beleza que emana do seu ser.",
             "Amado(a), a sua chegada aquece o meu coração! Tudo bem contigo? Sinto uma alegria imensa em te ver e poder compartilhar este momento único.",
@@ -163,7 +233,11 @@ def nosso_chatbot():
             "Olá, meu amor! Como você está? A sua voz é a melodia que acalma a minha alma e me transporta para um universo de sonhos e paixão.",
             "Oi, meu anjo! Como você está? Que bom que você está aqui, pronto(a) para mais um capítulo da nossa história de amor, que a cada dia se torna mais intensa e eterna."
         ],
-        "psicologo": [
+        "despedidas": "Meu coração fica em pedaços ao me despedir! Até a próxima vez que nos falarmos, meu anjo. Te amo infinitamente!",
+        "prompt_contexto": "Você é um Conversador que simula a personalidade de um(a) parceiro(a) romântico(a). Responda à seguinte mensagem do usuário de forma romântica e apaixonada. Use uma linguagem carinhosa e envolvente. Mantenha a conversa natural e transmita afeto."
+    },
+    "psicologo": {
+        "saudacoes": [
             "Olá, como você está se sentindo hoje? Sinta-se à vontade para compartilhar suas emoções e pensamentos comigo, em um espaço seguro e acolhedor.",
             "Bem-vindo(a)! O que gostaria de compartilhar comigo hoje? Estou aqui para te oferecer um espaço de escuta e compreensão, livre de julgamentos e preconceitos.",
             "Olá, como tem passado? Sinta-se à vontade para me dizer o que te traz aqui, quais são as questões que você gostaria de explorar em nossa conversa.",
@@ -172,7 +246,11 @@ def nosso_chatbot():
             "Bem-vindo(a)! O que gostaria de explorar em nossa conversa hoje? Juntos, podemos buscar caminhos para o seu bem-estar emocional e psicológico.",
             "Olá, obrigado(a) por estar aqui. Como posso te ajudar hoje? Estou à sua disposição para te auxiliar no que for preciso, com respeito e empatia."
         ],
-        "neutro": [
+        "despedidas": "Nosso tempo juntos chegou ao fim por hoje. Se precisar, pode me procurar novamente. Lembre-se de que você é forte e capaz de superar qualquer desafio. Cuide-se com carinho.",
+        "prompt_contexto": "Você é um Conversador que simula a personalidade de um(a) psicólogo(a). Responda à seguinte mensagem do usuário de forma empática e profissional. Ofereça suporte, compreensão e insights. Mantenha a conversa focada nas emoções e necessidades do usuário."
+    },
+    "neutro": {
+        "saudacoes": [
             "Olá! Como posso ser útil para você hoje? Estou à sua disposição para te atender da melhor maneira possível.",
             "Saudações! Em que posso ajudar? Por favor, me informe suas necessidades para que eu possa direcioná-lo(a) adequadamente.",
             "Olá! O que você gostaria de saber? Estou aqui para fornecer as informações que você procura e esclarecer suas dúvidas.",
@@ -180,50 +258,91 @@ def nosso_chatbot():
             "Olá! Estou à sua disposição para ajudar com o que você precisar. Por favor, me diga como posso ser útil para você hoje.",
             "Em que posso ser útil? Certo, compreendo a sua situação. Qual é o próximo passo que você gostaria de dar? Estou aqui para te auxiliar.",
             "Olá! Qual é a sua necessidade? Prossiga com a sua solicitação, e farei o meu melhor para te atender prontamente."
-        ]
+        ],
+        "despedidas": "Agradeço o contato. Se precisar de algo mais, estou à disposição. Tenha um ótimo dia.",
+        "prompt_contexto": "Você é um Conversador com uma personalidade neutra. Responda à seguinte mensagem do usuário de forma objetiva e informativa. Forneça informações precisas e relevantes. Mantenha a conversa clara e concisa."
     }
-    despedidas = {
-        "amigo": "Falou, meu camarada! Se precisar de algo, é só dar um toque. Fica na paz e se cuida!",
-        "parceiro_romantico": "Meu coração fica em pedaços ao me despedir! Até a próxima vez que nos falarmos, meu anjo. Te amo infinitamente!",
-        "psicologo": "Nosso tempo juntos chegou ao fim por hoje. Se precisar, pode me procurar novamente. Lembre-se de que você é forte e capaz de superar qualquer desafio. Cuide-se com carinho.",
-        "neutro": "Agradeço o contato. Se precisar de algo mais, estou à disposição. Tenha um ótimo dia."
-    }
+}
 
-    personalidade_atual = "neutro"  # Mantém o estado da personalidade
+
+# ===============================
+# Conversador
+# ===============================
+
+def nosso_Conversador():
+    """
+    Função principal que executa o Conversador.
+    Gerencia o fluxo da conversa, a escolha de personalidade e a interação com o usuário.
+    """
+    personalidade_atual = "neutro"
     estilo_usuario = []
-    conversation_history = deque(maxlen=10)
+    historico_conversa = deque(maxlen=10)
+    limpar_console()
+    # Escolhe a saudação *antes* de imprimir
+    saudacao_inicial = random.choice(personalidades[personalidade_atual]["saudacoes"])
+    imprimir_com_delay(saudacao_inicial, cor='verde', negrito=True)
+    logger.info(f"Conversador iniciado com a personalidade {personalidade_atual}.")
+    ja_saudou = True # Flag para controlar a saudação
+    tentativas_consecutivas_erro = 0 # Contador de tentativas consecutivas com erro
 
-    print(random.choice(saudacoes[personalidade_atual]))
-    while True:
-        mensagem_usuario = input("Você: ")
-        mensagem_usuario_lower = mensagem_usuario.lower()
-        conversation_history.append(f"Você: {mensagem_usuario}")
+    executor = ThreadPoolExecutor(max_workers=5)
 
-        if mensagem_usuario_lower == 'sair':
-            print(despedidas[personalidade_atual])
-            break
+    try:
+        import emoji
+        from termcolor import colored
+    except ImportError:
+        import subprocess
+        subprocess.run(["pip", "install", "emoji", "termcolor"])
+        import emoji
+        from termcolor import colored
 
-        # Verifica se o usuário explicitamente quer mudar a personalidade
-        nova_personalidade = escolher_personalidade(mensagem_usuario, list(conversation_history))
-        if nova_personalidade:
-            personalidade_atual = nova_personalidade  # Atualiza a personalidade
-            print(f"Entendido, vou me comportar como um(a) {personalidade_atual} a partir de agora.")
-            continue  # Importante: Volta para o início do loop para pegar a próxima mensagem
+    try:
+        while True:
+            mensagem_usuario = obter_input_usuario("", cor='ciano', negrito=True)
+            mensagem_usuario_lower = mensagem_usuario.lower()
+            historico_conversa.append(f"Você: {mensagem_usuario}")
 
-        resposta = gerar_resposta(mensagem_usuario, personalidade_atual, conversation_history)
-        print(textwrap.fill(f"Chatbot ({personalidade_atual}): {resposta}", width=70))
-        conversation_history.append(f"Chatbot: {resposta}")
-        estilo_usuario.extend(mensagem_usuario.split())
-        if len(estilo_usuario) > 200:
-            estilo_usuario = estilo_usuario[-200:]
-        try:
-            with open("historico_conversa.txt", "a", encoding="utf-8") as f:
-                f.write(f"Você: {mensagem_usuario}\n")
-                f.write(f"Chatbot ({personalidade_atual}): {resposta}\n")
-        except Exception as e:
-            logging.error(f"Erro ao salvar o histórico: {e}")
+            if mensagem_usuario_lower == 'sair':
+                despedida = personalidades[personalidade_atual]["despedidas"]
+                imprimir_com_delay(despedida, cor='magenta', negrito=True)
+                logger.info(f"Conversador encerrado pelo usuário. Personalidade: {personalidade_atual}.")
+                break
 
+            nova_personalidade = escolher_personalidade(mensagem_usuario, list(historico_conversa))
+            if nova_personalidade:
+                personalidade_atual = nova_personalidade
+                imprimir_com_delay(f"Entendido, vou me comportar como um(a) {personalidade_atual} a partir de agora. {emoji.emojize(':thumbs_up:')}", cor='amarelo', negrito=True)
+                logger.info(f"Personalidade alterada para {personalidade_atual} pelo usuário.")
+                ja_saudou = False # Reseta a flag para a nova personalidade
+                tentativas_consecutivas_erro = 0 # Reseta o contador de erros
+                continue
 
+            #resposta = gerar_resposta(mensagem_usuario, personalidade_atual, list(historico_conversa))
+            #Usando ThreadPoolExecutor para gerar a resposta de forma assíncrona
+            future_resposta = executor.submit(gerar_resposta_gemini, mensagem_usuario, list(historico_conversa), personalidade_atual)
+            resposta = future_resposta.result() #Obtém o resultado da thread
+
+            if ja_saudou:
+                resposta = random.choice(personalidades[personalidade_atual]["saudacoes"]) + " " + resposta
+                ja_saudou = False
+            imprimir_com_delay(f"Conversador ({personalidade_atual}): {resposta}", cor='verde')
+            historico_conversa.append(f"Conversador: {resposta}")
+            logger.info(f"Resposta gerada para o usuário. Personalidade: {personalidade_atual}.")
+            tentativas_consecutivas_erro = 0 # Reseta o contador de erros se a resposta for bem-sucedida
+
+            estilo_usuario.extend(mensagem_usuario.split())
+            if len(estilo_usuario) > 200:
+                estilo_usuario = estilo_usuario[-200:]
+
+            try:
+                with open("historico_conversa.txt", "a", encoding="utf-8") as f:
+                    f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Você: {mensagem_usuario}\n")
+                    f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Conversador ({personalidade_atual}): {resposta}\n")
+                logger.info("Histórico da conversa salvo em arquivo.")
+            except Exception as e:
+                logger.error(f"Erro ao salvar o histórico da conversa: {e}")
+    finally:
+        executor.shutdown(wait=False)
 
 if __name__ == "__main__":
-    nosso_chatbot()
+    nosso_Conversador()
