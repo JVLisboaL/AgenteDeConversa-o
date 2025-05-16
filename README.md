@@ -31,9 +31,9 @@ Se você estiver usando o Google Colab, siga estas etapas para executar o chatbo
 2. *Copie o código*: Copie todo o código Python deste README e cole em uma célula de código no Colab.
 3. *Instale as dependências*: Execute a célula de código com o seguinte comando:
 
-'''
+```
 !pip install requests
-'''
+```
 
 *Configure a chave da API*: Execute a célula de código para configurar a chave da API do Google Gemini:
 
@@ -58,34 +58,35 @@ Se você estiver executando o chatbot localmente, siga estas etapas:
 2. *Instale as dependências*:  
    Abra um terminal ou prompt de comando e execute o seguinte comando:
 
-
+```
 bash
 
 pip install requests
+```
 
-
-## Configure a chave da API do Google Gemini
+3. *Configure a chave da API do Google Gemini*:
 
 - Obtenha uma chave de API do Google Gemini no Google AI Studio.
 
-- Defina a chave da API como uma variável de ambiente chamada GOOGLE_API_KEY.  
-  Por exemplo, no Linux/macOS, você pode adicionar a seguinte linha ao seu arquivo ~/.bashrc ou ~/.zshrc:
+- Defina a chave da API como uma variável de ambiente chamada ```GOOGLE_API_KEY. ``` 
+  Por exemplo, no Linux/macOS, você pode adicionar a seguinte linha ao seu arquivo ```~/.bashrc``` ou ```~/.zshrc:```
 
 bash
 
 export GOOGLE_API_KEY="SUA_CHAVE_DA_API"
 
 
-Lembre-se de substituir "SUA_CHAVE_DA_API" pela sua chave de API real.
+Lembre-se de substituir ```"SUA_CHAVE_DA_API"``` pela sua chave de API real.
 
-### Execute o chatbot
+4. *Execute o chatbot*:
 
 Abra um terminal ou prompt de comando, navegue até o diretório onde você salvou o código do chatbot e execute o seguinte comando:
 
+```
 bash
 
 python chatbot.py
-
+```
 
 ## Interagindo com o Chatbot
 
@@ -93,16 +94,16 @@ Depois de executar o chatbot, você pode interagir com ele digitando suas mensag
 
 Você também pode usar comandos explícitos para mudar a persona do chatbot:
 
-- aja como um amigo
-- aja como um parceiro ou aja como um parceiro romântico
-- aja como um psicólogo ou aja como um psicologo
-- aja como neutro
+- ```aja como um amigo```
+- ```aja como um parceiro``` ou ```aja como um parceiro romântico```
+- ```aja como um psicólogo``` ou ```aja como um psicologo```
+- ```aja como neutro```
 
-Para encerrar a conversa, digite *sair* e pressione Enter.
+Para encerrar a conversa, digite ```*sair*``` e pressione Enter.
 
 ## Solução de Problemas
 
-- *Erro de API Key*: Se você estiver recebendo um erro relacionado à chave da API, verifique se você configurou a variável de ambiente GOOGLE_API_KEY corretamente.
+- *Erro de API Key*: Se você estiver recebendo um erro relacionado à chave da API, verifique se você configurou a variável de ambiente ```GOOGLE_API_KEY``` corretamente.
 - *Erro de instalação*: Se você estiver tendo problemas para instalar as dependências, verifique se você tem o Python e o pip instalados corretamente.
 - *Chatbot não responde*: Se o chatbot não estiver respondendo, verifique sua conexão com a internet e tente reiniciar o chatbot.
 
