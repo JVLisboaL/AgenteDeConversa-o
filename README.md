@@ -30,19 +30,15 @@ O chatbot mantém um histórico da conversa para fornecer respostas mais context
 Se você estiver usando o Google Colab, siga estas etapas para executar o chatbot:
 
 1. *Abra o Colab*: Abra um novo notebook no Google Colab.
-2. *Copie o código*: Copie todo o código Python deste README e cole em uma célula de código no Colab.
-3. *Instale as dependências*: Execute a célula de código com o seguinte comando:
-
-```
-!pip install requests
-```
+2. *Copie o código*: Copie todo o código Python do arquivo ```CodigoNoColab``` e cole em uma célula de código no Colab.
+3. *Você deve ter uma chave API* crie uma chave API no Google AI Studio em https://aistudio.google.com/app/apikey
 
 *Configure a chave da API*: Execute a célula de código para configurar a chave da API do Google Gemini:
 
-
+```
 from google.colab import userdata
 userdata.define('GOOGLE_API_KEY')
-
+```
 
 Quando o Colab solicitar, copie e cole sua chave da API do Google Gemini e clique em *"Save"*.
 
