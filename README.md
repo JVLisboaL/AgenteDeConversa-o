@@ -2,7 +2,7 @@ Chatbot com Personalidades
 Um guia completo para configurar e executar um chatbot em Python com diferentes personalidades usando a API do Google Gemini.
 
 Visão Geral
-Este chatbot é projetado para interagir com os usuários, assumindo uma de quatro personas distintas:
+Este chatbot foi projetado para interagir com os usuários, assumindo uma de quatro personas distintas:
 
 Amigo: Um companheiro amigável e casual, pronto para uma conversa descontraída.
 
