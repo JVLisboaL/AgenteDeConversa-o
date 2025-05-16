@@ -94,9 +94,9 @@ Depois de executar o chatbot, você pode interagir com ele digitando suas mensag
 
 Você também pode usar comandos explícitos para mudar a persona do chatbot:
 
-- ```aja como um amigo```
-- ```aja como um parceiro``` ou ```aja como um parceiro romântico```
-- ```aja como um psicólogo``` ou ```aja como um psicologo```
+- ```aja como um amigo``` ou ```seja meu amigo```
+- ```aja como um parceiro``` ou ```seja meu parceiro romântico```
+- ```aja como um psicólogo``` ou ```seja meu psicologo```
 - ```aja como neutro```
 
 Para encerrar a conversa, digite ```"sair"``` e pressione Enter.
