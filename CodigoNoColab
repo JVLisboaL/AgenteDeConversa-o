@@ -12,6 +12,10 @@ import time
 from threading import Thread, Event
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from IPython.display import Javascript, display
+display(Javascript('''
+    IPython.config.auto_scroll = false;
+'''))
 
 # ===============================
 # Configuração Avançada
