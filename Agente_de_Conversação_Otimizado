@@ -43,6 +43,10 @@
         "from threading import Thread, Event\n",
         "import unicodedata\n",
         "from concurrent.futures import ThreadPoolExecutor, as_completed\n",
+        "from IPython.display import Javascript, display
+          display(Javascript('''
+              IPython.config.auto_scroll = false;
+          '''))\n",
         "\n",
         "# ===============================\n",
         "# Configuração Avançada\n",
