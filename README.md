@@ -99,7 +99,7 @@ Você também pode usar comandos explícitos para mudar a persona do chatbot:
 - ```aja como um psicólogo``` ou ```aja como um psicologo```
 - ```aja como neutro```
 
-Para encerrar a conversa, digite ```'sair'``` e pressione Enter.
+Para encerrar a conversa, digite ```"sair"``` e pressione Enter.
 
 ## Solução de Problemas
 
